@@ -64,7 +64,7 @@ PM2 Matrix is a web dashboard that connects to PM2 on your server and shows you 
 ### Authentication & Security
 
 - Single-user login with a bcrypt-hashed password stored in your `.env` file
-- Session cookie — `httpOnly`, `sameSite: lax`, `Secure` flag enabled in production
+- Session cookie — `httpOnly`, `sameSite: lax`, `Secure` flag set automatically on HTTPS (`secure: 'auto'`)
 - Rate limiting on the login endpoint (20 attempts per 15 minutes per IP)
 - All API routes and WebSocket connections require a valid session
 - HTTP security headers via `helmet`
@@ -140,8 +140,8 @@ TRUST_PROXY=0
 | `PM2_MATRIX_HOST` | Network interface. Use `127.0.0.1` behind a reverse proxy; `0.0.0.0` for direct access | `0.0.0.0` |
 | `PM2_MATRIX_PORT` | Port the server listens on | `8080` |
 | `SESSION_SECRET` | A long random string used to sign session cookies — generated in Step 4 | *(required)* |
-| `NODE_ENV` | Set to `production` to enable the `Secure` flag on session cookies (required for HTTPS) | — |
-| `TRUST_PROXY` | Set to `1` when behind Nginx/Caddy; enables correct IP detection for rate limiting and the `Secure` cookie | `0` |
+| `NODE_ENV` | Optional runtime mode (e.g. `production`). Does **not** control the session `Secure` flag — that follows HTTPS automatically | — |
+| `TRUST_PROXY` | Set to `1` when behind Nginx/Caddy; enables correct IP detection for rate limiting (and `req.secure` when the proxy sends `X-Forwarded-Proto`) | `0` |
 
 ---
 
@@ -277,8 +277,8 @@ All configuration is via environment variables in `.env`.
 | `PM2_MATRIX_HOST` | string | `0.0.0.0` | Network interface to bind. Use `127.0.0.1` to restrict to localhost (e.g. behind a reverse proxy) |
 | `PM2_MATRIX_PORT` | number | `8080` | TCP port |
 | `SESSION_SECRET` | string | *(required)* | Random secret for signing session cookies. Must be at least 32 characters. Generate with `openssl rand -hex 32` |
-| `NODE_ENV` | string | — | Set to `production` to enable the `Secure` flag on the session cookie. Also set `TRUST_PROXY=1` when behind a reverse proxy |
-| `TRUST_PROXY` | `0` or `1` | `0` | Set to `1` **only** when running behind a reverse proxy (Nginx, Caddy, etc.). Enables Express to trust `X-Forwarded-For` for the rate limiter and also activates the `Secure` cookie flag automatically |
+| `NODE_ENV` | string | — | Optional. Does **not** force the session cookie `Secure` flag. The cookie uses `secure: 'auto'` (Secure on HTTPS only). |
+| `TRUST_PROXY` | `0` or `1` | `0` | Set to `1` **only** when running behind a reverse proxy (Nginx, Caddy, etc.). Enables Express to trust `X-Forwarded-For` / `X-Forwarded-Proto` for the rate limiter and correct HTTPS detection. |
 
 ---
 
@@ -290,10 +290,10 @@ To report a vulnerability privately, see [SECURITY.md](SECURITY.md).
 
 In production, place PM2 Matrix behind **Nginx** or **Caddy** with HTTPS. This encrypts traffic between the browser and your server. When you do:
 
-1. Set `NODE_ENV=production` in your `.env` — this enables the `Secure` cookie flag so the session cookie is only sent over HTTPS
-2. Set `TRUST_PROXY=1` in your `.env` — this tells Express to trust `X-Forwarded-For` headers from the proxy (enables correct IP-based rate limiting) and also enables the `Secure` cookie flag automatically
-3. Set `PM2_MATRIX_HOST=127.0.0.1` so the server only listens on localhost
-4. Point your reverse proxy to `http://127.0.0.1:8080`
+1. Set `TRUST_PROXY=1` in your `.env` — Express trusts `X-Forwarded-For` / `X-Forwarded-Proto` so rate limiting sees real client IPs and session cookies get the `Secure` flag on HTTPS
+2. Set `PM2_MATRIX_HOST=127.0.0.1` so the server only listens on localhost
+3. Point your reverse proxy to `http://127.0.0.1:8080`
+4. Optionally set `NODE_ENV=production` for other Node production behaviour (it does not control the cookie `Secure` flag)
 
 Example Nginx snippet:
 
@@ -314,13 +314,13 @@ server {
 }
 ```
 
-> With `TRUST_PROXY=1` set, Express trusts the proxy's `X-Forwarded-For` header so the rate limiter sees real client IPs and the session cookie gets the `Secure` flag. Do **not** set `TRUST_PROXY=1` if PM2 Matrix is exposed directly to the internet — it would allow attackers to spoof their IP.
+> With `TRUST_PROXY=1` set, Express trusts the proxy's `X-Forwarded-For` / `X-Forwarded-Proto` headers so the rate limiter sees real client IPs and HTTPS is detected correctly for the session cookie. Do **not** set `TRUST_PROXY=1` if PM2 Matrix is exposed directly to the internet — it would allow attackers to spoof their IP.
 
 ### Other security measures already in place
 
 - **Rate limiting**: Login is limited to 20 attempts per 15 minutes per IP address
 - **HTTP security headers**: `helmet` adds `X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy`, and others
-- **Session cookies**: `httpOnly` (not accessible from JavaScript), `sameSite: lax`, session files written with mode `0600` (owner-readable only)
+- **Session cookies**: `httpOnly` (not accessible from JavaScript), `sameSite: lax`, `Secure` when the request is HTTPS (`secure: 'auto'`), session files written with mode `0600` (owner-readable only)
 - **Session fixation prevention**: a new session ID is issued on every successful login
 - **All endpoints protected**: every API route and WebSocket connection requires a valid authenticated session
 - **Password storage**: only a bcrypt hash is stored — the plain-text password is never saved anywhere
@@ -409,7 +409,11 @@ npm start
 
 ### Session cookie not sent / logged out immediately on HTTPS
 
-→ Set `NODE_ENV=production` in your `.env` and restart the server. This enables the `Secure` flag on the cookie, which is required when the site is served over HTTPS.
+→ Ensure the browser reaches the app over **HTTPS** and set `TRUST_PROXY=1` when behind a reverse proxy so Express sees `X-Forwarded-Proto: https`. The session cookie uses `secure: 'auto'` and is only marked `Secure` on HTTPS.
+
+### Login succeeds (200) but you stay on the login page over HTTP
+
+→ Over plain HTTP the cookie is intentionally **not** marked `Secure`, so login should work. If you still stick on the login page, hard-refresh and confirm `/api/me` returns `{ "authenticated": true }` (not a cached 304). Rebuild and restart after upgrading past the cookie fix.
 
 ---
 
