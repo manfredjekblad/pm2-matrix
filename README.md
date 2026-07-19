@@ -2,6 +2,8 @@
 
 **A self-hosted, real-time dashboard for monitoring and managing your PM2 processes — right from your browser.**
 
+![PM2 Matrix dashboard](.github/assets/dashboard.png)
+
 ---
 
 ## What is PM2?
@@ -48,6 +50,8 @@ PM2 Matrix is a web dashboard that connects to PM2 on your server and shows you 
 - **Drag-and-drop reorder**: drag a card to a new position; a blue left border highlights the drop target
 
 ### Expanded Log Modal
+
+![Expanded log modal for a single service](.github/assets/log-focus.png)
 
 - Opens any service in a large, tall overlay that fills most of the screen
 - Same All / Out / Err filter with a live count badge and unread error badge
