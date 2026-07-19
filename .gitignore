@@ -1,0 +1,30 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+dist-server/
+
+# Environment — keep .env.example tracked
+.env
+.env.local
+.env.*.local
+!.env.example
+
+# Session store files (runtime); keep directory via .gitkeep
+data/sessions/*
+!data/sessions/.gitkeep
+
+# Logs
+*.log
+npm-debug.log*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+.idea/
+*.swp
+*.swo
