@@ -269,7 +269,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     const { signal } = controller
 
     try {
-      const res = await fetch('/api/me', { signal })
+      const res = await fetch('/api/me', { signal, cache: 'no-store' })
       if (!res.ok) throw new Error(`/api/me returned ${res.status}`)
       const data = await res.json() as { authenticated: boolean }
 
@@ -325,6 +325,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ username, password }),
+      cache: 'no-store',
     })
     if (!res.ok) {
       const data = await res.json() as { error: string }

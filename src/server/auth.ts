@@ -52,11 +52,12 @@ export const sessionMiddleware = session({
     httpOnly: true,
     sameSite: 'lax',
     maxAge: 24 * 60 * 60 * 1000,
-    // Mark the cookie Secure when NODE_ENV is 'production' OR when TRUST_PROXY
-    // is enabled (which signals an HTTPS reverse-proxy deployment).  This
-    // prevents accidentally leaving the Secure flag off in a production HTTPS
-    // setup where NODE_ENV was not explicitly set.
-    secure: process.env.NODE_ENV === 'production' || process.env.TRUST_PROXY === '1',
+    // 'auto' sets Secure only when the request is HTTPS (req.secure).  That
+    // works for direct TLS and for HTTPS reverse proxies when TRUST_PROXY=1.
+    // Forcing Secure whenever NODE_ENV=production breaks login over plain HTTP
+    // (e.g. Tailscale IP access): the browser ignores the cookie, /api/login
+    // still returns 200, then /api/me sees no session.
+    secure: 'auto',
   },
 })
 
@@ -121,6 +122,9 @@ export const logoutHandler: RequestHandler = (req, res) => {
 }
 
 export const meHandler: RequestHandler = (req, res) => {
+  // Prevent browsers/proxies from serving a stale 304 of { authenticated: false }
+  // after a successful login (Express ETags would otherwise match the old body).
+  res.set('Cache-Control', 'no-store')
   if (req.session?.authenticated) {
     res.json({ authenticated: true, username: req.session.username })
   } else {
