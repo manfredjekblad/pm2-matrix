@@ -36,7 +36,7 @@
     "helmet": "^8.1.0",
     "pm2": "^5.3.1",
     "session-file-store": "^1.5.0",
-    "ws": "^8.17.0"
+    "ws": "^8.21.1"
   },
   "devDependencies": {
     "@dnd-kit/core": "^6.1.0",
