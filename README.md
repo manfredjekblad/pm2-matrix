@@ -51,6 +51,8 @@ PM2 Matrix is a web dashboard that connects to PM2 on your server and shows you 
 
 ### Expanded Log Modal
 
+![Expanded log modal for a single service](.github/assets/log-focus.png)
+
 - Opens any service in a large, tall overlay that fills most of the screen
 - Same All / Out / Err filter with a live count badge and unread error badge
 - **Log search** — click the 🔍 button or press **Ctrl+F** to open an inline search bar; logs are filtered in real time by case-insensitive substring match, and matching text is highlighted in yellow
