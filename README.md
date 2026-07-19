@@ -2,6 +2,8 @@
 
 **A self-hosted, real-time dashboard for monitoring and managing your PM2 processes — right from your browser.**
 
+![PM2 Matrix dashboard](.github/assets/dashboard.png)
+
 ---
 
 ## What is PM2?
